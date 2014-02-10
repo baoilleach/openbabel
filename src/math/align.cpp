@@ -323,17 +323,19 @@ namespace OpenBabel
 
       for (unsigned int k = 0; k < _aut.size(); ++k) {
         // Rearrange columns of _mtarget for this permutation
+        Eigen::RowVectorXd ids(_frag_atoms.CountBits());
         unsigned int i=0;
         for (unsigned int j=1; j<=_prefmol->NumAtoms(); ++j) {
           if (_frag_atoms.BitIsSet(j)) {
             for (std::size_t l = 0; l < _aut[k].size(); ++l)
               if (_aut[k][l].first == j - 1) {
-                mtarget.col(i) = _mtarget.col(_newidx[_aut[k][l].second]);
+                ids[i] = _newidx[_aut[k][l].second];
                 break;
               }
             i++;
           }
         }
+        mtarget = _mtarget * Eigen::PermutationWrapper<Eigen::RowVectorXd>(ids);
         if (_method == OBAlign::Kabsch)
           SimpleAlign(mtarget);
         else
