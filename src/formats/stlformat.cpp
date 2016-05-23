@@ -63,7 +63,7 @@ namespace OpenBabel
       virtual const char* Description() //required
       {
         return
-          "VDW surface in binary STL format suitable for 3D printing\n"
+          "STL 3D-printing format\n"
           "Write Options, e.g. -xr\n"
           "  p radius for probe particle   (default 0.0 AA)\n"
           "  s scale-factor for VDW radius (default 1.0 AA)\n"

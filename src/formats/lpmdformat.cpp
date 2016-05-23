@@ -31,7 +31,7 @@ class LpmdFormat : public OBMoleculeFormat
   virtual const char* Description() //required
   {
    return
-    "The LPMD file format.\n"
+    "LPMD format\n"
     "Read and write LPMD's atomic configuration file\n\n"
     "Read Options e.g. -ab:\n"
     "  s  Output single bonds only\n"
