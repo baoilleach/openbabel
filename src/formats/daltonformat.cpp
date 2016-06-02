@@ -82,14 +82,15 @@ namespace OpenBabel
     {
       return
         "DALTON input format\n"
+        "Read Options e.g. -as\n"
+        "  s  Output single bonds only\n"
+        "  b  Disable bonding entirely\n\n"
+
         "Write Options e.g. -xa\n"
         "  a                write input in atomic units instead of Angstrom\n"
         "  b                write input using the ATOMBASIS format\n"
         "  k <basis>        specify basis set to use\n"
-        "                     e.g. ``-xk STO-3G``\n\n"
-        "Read Options e.g. -as\n"
-        "  s  Output single bonds only\n"
-        "  b  Disable bonding entirely\n";
+        "                     e.g. ``-xk STO-3G``\n\n";
     };
 
     virtual const char* SpecificationURL()

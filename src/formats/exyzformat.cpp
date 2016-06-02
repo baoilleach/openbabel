@@ -46,8 +46,7 @@ namespace OpenBabel
 
 "* Line one of the file contains the number of atoms in the file.\n"
 "* Line two of the file contains a title, comment, filename and/or the\n"
-"  following keywords:\n"
-"    ``%PBC`` or ``%VIRTUAL`` \n\n"
+"  following keywords: ``%PBC`` or ``%VIRTUAL`` \n\n"
 
 "Any remaining lines are parsed for atom information until a blank line. These\n"
 "lines start with the element symbol, followed by X, Y, and Z coordinates in\n"
