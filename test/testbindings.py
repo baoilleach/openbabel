@@ -109,5 +109,18 @@ class TestSuite(PythonBindings):
         mol.atoms[0].OBAtom.SetIsotope(65535)
         self.assertEqual(mol.write("smi").rstrip(), "")
 
+    def testRInChI(self):
+        # Example 8 from the docs
+        rsmi = "CC(=O)O.CCO>S(=O)(=O)(O)O>CC(=O)OCC.O"
+        rxn = pybel.readstring("rsmi", rsmi)
+        print 1
+        rxn.SetReversible()
+        print 2
+        rinchi = rxn.write("rinchi")
+        print 3
+        ans = "RInChI=1.00.1S/C2H4O2/c1-2(3)4/h1H3,(H,3,4)!C2H6O/c1-2-3/h3H,2H2,1H3<>C4H8O2/c1-3-6-4(2)5/h3H2,1-2H3!H2O/h1H2<>H2O4S/c1-5(2,3)4/h(H2,1,2,3,4)/d="
+        self.assertEqual(ans, rinchi)
+
+
 if __name__ == "__main__":
     unittest.main()

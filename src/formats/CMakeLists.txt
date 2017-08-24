@@ -148,6 +148,7 @@ if(MSVC OR SHARED_POINTER)
     chemdrawcdx
     chemkinformat
     rsmiformat
+    rinchiformat
   )
 endif(MSVC OR SHARED_POINTER)
 
