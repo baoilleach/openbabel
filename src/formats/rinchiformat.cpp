@@ -138,14 +138,14 @@ namespace OpenBabel
       switch (part) {
       case REACTANTS: N = pReact->NumReactants(); break;
       case PRODUCTS: N = pReact->NumProducts(); break;
-      case AGENTS: N = 1; break;
+      case AGENTS: N = pReact->NumAgents(); break;
       }
       for (unsigned int i = 0; i < N; ++i) {
         OBMol* mol;
         switch (part) {
         case REACTANTS: mol = &*(pReact->GetReactant(i)); break;
         case PRODUCTS: mol = &*(pReact->GetProduct(i)); break;
-        case AGENTS: mol = &*pReact->GetAgent(); break;
+        case AGENTS: mol = &*(pReact->GetAgent(i)); break;
         }
         bool ok = inchiconv.Write(mol);
         if (!ok)
@@ -161,6 +161,7 @@ namespace OpenBabel
 
     std::sort(inchis[REACTANTS].begin(), inchis[REACTANTS].end());
     std::sort(inchis[PRODUCTS].begin(), inchis[PRODUCTS].end());
+    std::sort(inchis[AGENTS].begin(), inchis[AGENTS].end());
 
     bool reactants_first = true;
     std::vector<std::string>::const_iterator reactant_it = inchis[REACTANTS].begin();
@@ -197,8 +198,12 @@ namespace OpenBabel
       ofs << *vit;
     }
     ofs << "<>";
-    if (inchis[AGENTS].size())
-      ofs << inchis[AGENTS][0];
+    for (std::vector<std::string>::const_iterator vit = inchis[AGENTS].begin(); vit != inchis[AGENTS].end(); ++vit) {
+      if (vit != inchis[AGENTS].begin())
+        ofs << '!';
+      ofs << *vit;
+    }
+
     ofs << '\n';
     return true;
   }
