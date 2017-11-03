@@ -1,0 +1,87 @@
+name: openbabel
+version: "2.4.90"
+grade: "devel"
+summary: Open Babel, the Open Source chemistry toolbox
+description: Open Babel is a chemical toolbox designed to speak the many languages of chemical data. It's an open, collaborative project allowing anyone to search, convert, analyze, or store data from molecular modeling, chemistry, solid-state materials, biochemistry, or related areas. 
+confinement: strict
+
+apps:
+  babel:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION babel
+    plugs: [ home ]
+  obabel:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obabel
+    plugs: [ home ]
+  obchiral:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obchiral
+    plugs: [ home ]
+  obconformer:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obconformer
+    plugs: [ home ]
+  obdistgen:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obdistgen
+    plugs: [ home ]
+  obenergy:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obenergy
+    plugs: [ home ]
+  obfit:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obfit
+    plugs: [ home ]
+  obgen:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obgen
+    plugs: [ home ]
+  obgrep:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obgrep
+    plugs: [ home ]
+  obgui:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION UBUNTU_MENUPROXY=0 desktop-launch obgui
+    plugs: [x11,unity7,home]
+  obminimize:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obminimize
+    plugs: [ home ]
+  obprobe:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obprobe
+    plugs: [ home ]
+  obprop:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obprop
+    plugs: [ home ]
+  obrms:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obrms
+    plugs: [ home ]
+  obrotamer:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obrotamer
+    plugs: [ home ]
+  obrotate:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obrotate
+    plugs: [ home ]
+  obspectrophore:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obspectrophore
+    plugs: [ home ]
+  obsym:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obsym
+    plugs: [ home ]
+  obtautomer:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obtautomer
+    plugs: [ home ]
+  obthermo:
+    command: env BABEL_LIBDIR=$SNAP/lib/openbabel/$SNAP_VERSION BABEL_DATADIR=$SNAP/share/openbabel/$SNAP_VERSION obthermo
+    plugs: [ home ]
+parts:
+  openbabel:
+    plugin: cmake
+    configflags: ["-DCMAKE_BUILD_TYPE=RELEASE"]
+    source: git://github.com/openbabel/openbabel
+    build-packages:
+      - libxml2-dev
+      - libcairo2-dev
+      - libeigen3-dev
+      - zlib1g-dev
+      - libwxgtk3.0-dev
+      - libwxbase3.0-dev
+    stage-packages:
+      - libxml2
+      - libcairo2
+      - zlib1g
+      - libwxgtk3.0-0v5
+      - libwxbase3.0-0v5
+    after: [desktop-gtk2]

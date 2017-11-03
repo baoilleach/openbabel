@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Open Babel
+GenericName=Chemistry 
+Comment=Interconvert chemistry file formats
+Exec=obgui
+Icon=$SNAP/meta/gui/obgui.png
+Terminal=false
+Type=Application
+Categories=Science;Chemistry;
+Keywords=Chemistry;Cheminformatics;
