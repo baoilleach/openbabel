@@ -1208,7 +1208,7 @@ namespace OpenBabel
   //Residue information are copied, MM 4-27-01
   //All OBGenericData incl OBRotameterList is copied, CM 2006
   //OBChiralData for all atoms copied, TV 2008
-  //Zeros all flags except OB_TCHARGE_MOL, OB_PCHARGE_MOL,
+  //Zeros all flags except OB_TCHARGE_MOL, OB_PCHARGE_MOL, OB_HYBRID_MOL
   //OB_TSPIN_MOL and OB_PATTERN_STRUCTURE which are copied
   {
     if (this == &source)
@@ -1249,6 +1249,8 @@ namespace OpenBabel
       this->SetFlag(OB_TCHARGE_MOL);
     if (src.HasFlag(OB_PCHARGE_MOL))
       this->SetFlag(OB_PCHARGE_MOL);
+    if (src.HasFlag(OB_HYBRID_MOL))
+      this->SetFlag(OB_HYBRID_MOL);
 
     //this->_flags = src.GetFlags(); //Copy all flags. Perhaps too drastic a change
 
@@ -1354,6 +1356,7 @@ namespace OpenBabel
       OBAtom *addedAtom = GetAtom(NumAtoms());
       correspondingId[atom->GetId()] = addedAtom->GetId();
     }
+    correspondingId[OBStereo::ImplicitRef] = OBStereo::ImplicitRef;
 
     for (bond = src.BeginBond(j) ; bond ; bond = src.NextBond(j)) {
       bond->SetId(NoId);//Need to remove ID which relates to source mol rather than this mol
@@ -1404,6 +1407,21 @@ namespace OpenBabel
       }
     }
 
+    // Copy the atom maps
+    OBAtomClassData* src_am = (OBAtomClassData*) src.GetData("Atom Class");
+    if (src_am != (OBAtomClassData*)0) {
+      OBAtomClassData* dst_am = (OBAtomClassData*) GetData("Atom Class");
+      if (dst_am == (OBAtomClassData*)0) {
+        dst_am = new OBAtomClassData();
+        SetData(dst_am);
+      }
+      FOR_ATOMS_OF_MOL(atom, src) {
+        unsigned int idx = atom->GetIdx();
+        if (src_am->HasClass(idx))
+          dst_am->Add(idx + prevatms, src_am->GetClass(idx));
+      }
+    }
+    
     // TODO: This is actually a weird situation (e.g., adding a 2D mol to 3D one)
     // We should do something to update the src coordinates if they're not 3D
     if(src.GetDimension()<_dimension)
@@ -1416,8 +1434,9 @@ namespace OpenBabel
 
   bool OBMol::Clear()
   {
-    obErrorLog.ThrowError(__FUNCTION__,
-                          "Ran OpenBabel::Clear Molecule", obAuditMsg);
+    if (obErrorLog.GetOutputLevel() >= obAuditMsg)
+      obErrorLog.ThrowError(__FUNCTION__,
+                            "Ran OpenBabel::Clear Molecule", obAuditMsg);
 
     vector<OBAtom*>::iterator i;
     vector<OBBond*>::iterator j;
@@ -2034,12 +2053,33 @@ namespace OpenBabel
     return(true);
   }
 
+  static void UpdateAtomMapsForAtomDeletion(OBMol* mol, unsigned int atomidx)
+  {
+    OBAtomClassData *pac = (OBAtomClassData*)mol->GetData("Atom Class");
+    if (pac != (OBAtomClassData*) 0) {
+      // Handle the deleted atom first
+      if (pac->HasClass(atomidx))
+        pac->Add(atomidx, 0);
+      // Now handle all of the atoms with indices >= deleted atom
+      FOR_ATOMS_OF_MOL(matom, mol) {
+        unsigned int midx = matom->GetIdx();
+        if (midx < atomidx) continue; // these ones are unaffected
+        if (pac->HasClass(midx+1)) {
+          unsigned int val = pac->GetClass(midx+1);
+          pac->Add(midx+1, 0); // wipe from old idx
+          pac->Add(midx, val); // assign map value to new idx
+        }
+      }
+    }
+  }
 
   bool OBMol::DeleteHydrogen(OBAtom *atom)
   //deletes the hydrogen atom passed to the function
   {
     if (atom->GetAtomicNum() != OBElements::Hydrogen)
       return false;
+
+    unsigned atomidx = atom->GetIdx();
 
     //find bonds to delete
     OBAtom *nbr;
@@ -2054,7 +2094,7 @@ namespace OpenBabel
     DecrementMod();
 
     int idx;
-    if (atom->GetIdx() != NumAtoms())
+    if (atomidx != NumAtoms())
       {
         idx = atom->GetCIdx();
         int size = NumAtoms()-atom->GetIdx();
@@ -2071,7 +2111,7 @@ namespace OpenBabel
     StereoRefToImplicit(*this, id);
 
     _atomIds[id] = (OBAtom*)NULL;
-    _vatom.erase(_vatom.begin()+(atom->GetIdx()-1));
+    _vatom.erase(_vatom.begin()+(atomidx-1));
     _natoms--;
 
     //reset all the indices to the atoms
@@ -2083,6 +2123,9 @@ namespace OpenBabel
     UnsetHydrogensAdded();
 
     DestroyAtom(atom);
+
+    // If the molecule has atom maps, these may need to be updated
+    UpdateAtomMapsForAtomDeletion(this, atomidx);
 
     UnsetSSSRPerceived();
     UnsetLSSRPerceived();
@@ -2469,6 +2512,9 @@ namespace OpenBabel
     // Delete any stereo objects involving this atom
     OBStereo::Ref id = atom->GetId();
     DeleteStereoOnAtom(*this, id);
+
+    // If the molecule has atom maps, these may need to be updated
+    UpdateAtomMapsForAtomDeletion(this, atom->GetIdx());
 
     if (destroyAtom)
       DestroyAtom(atom);
@@ -3301,7 +3347,7 @@ namespace OpenBabel
     // (Most of the current problems lie in the interface with the
     //   Kekulize code anyway, not in marking everything as potentially aromatic)
 
-    bool needs_kekulization; // are there any aromatic bonds?
+    bool needs_kekulization = false; // are there any aromatic bonds?
     bool typed; // has this ring been typed?
     unsigned int loop, loopSize;
     for (ringit = rlist.begin(); ringit != rlist.end(); ++ringit)

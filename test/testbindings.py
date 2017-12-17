@@ -54,11 +54,82 @@ class PybelWrapper(PythonBindings):
 
 class TestSuite(PythonBindings):
 
+    def testSmilesAtomOrder(self):
+        """Ensure that SMILES atom order is written correctly"""
+        data = [("CC", "1 2"),
+                ("O=CCl", "3 2 1")]
+        for smi, atomorder in data:
+            mol = pybel.readstring("smi", smi)
+            mol.write("can", opt={"O": True})
+            res = mol.data["SMILES Atom Order"]
+            self.assertEqual(res, atomorder)
+        mol = pybel.readstring("smi", "CC")
+        mol.write("can")
+        self.assertFalse("SMILES Atom Order" in mol.data)
+
+    def testAtomMapsAfterCopying(self):
+        """Copying a molecule should copy the atom maps"""
+        smi = "C[CH2:2]O[Cl:6]"
+        obmol = pybel.readstring("smi", smi).OBMol
+        copy = pybel.ob.OBMol(obmol)
+        copysmi = pybel.Molecule(copy).write("smi", opt={"a": True})
+        self.assertEqual(copysmi.rstrip(), smi)
+
+    def testAtomMapsAfterAddition(self):
+        """Adding two molecules should not mess up the atom maps"""
+        data = [
+                ("C", "[OH2:2]"),
+                ("[OH2:2]", "C"),
+                ("[CH4:6]", "[OH2:2]"),
+                ("C", "O"),
+               ]
+        for a, b in data:
+            mols = [pybel.readstring("smi", x) for x in [a, b]]
+            mols[0].OBMol += mols[1].OBMol
+            joined = mols[0].write("smi", opt={"a":True}).rstrip()
+            self.assertEqual(joined, "%s.%s" % (a, b))
+
+    def testAtomMapsAfterDeletion(self):
+        """Removing atoms/hydrogens should not mess up the atom maps"""
+        smis = ["C[NH2:2]", "[CH3:1][NH2:2]"]
+        for smi in smis:
+            mol = pybel.readstring("smi", smi)
+            mol.OBMol.DeleteAtom(mol.OBMol.GetAtom(1))
+            self.assertEqual(mol.write("smi", opt={"a":True}).rstrip(), "[NH2:2]")
+        smi = "[H]C[NH:2]"
+        mol = pybel.readstring("smi", smi)
+        mol.removeh()
+        self.assertEqual(mol.write("smi", opt={"a":True}).rstrip(), "C[NH:2]")
+
+    def testImplicitCisDblBond(self):
+        """Ensure that dbl bonds in rings of size 8 or less are always
+        implicitly cis"""
+        smi = "C1/C=C/C"
+        for i in range(5): # from size 4 to 8
+            ringsize = i + 4
+            ringsmi = smi + "1"
+            roundtrip = pybel.readstring("smi", ringsmi).write("smi")
+            self.assertTrue("/" not in roundtrip)
+            smi += "C"
+        ringsize = 9
+        ringsmi = smi + "1"
+        roundtrip = pybel.readstring("smi", ringsmi).write("smi")
+        self.assertTrue("/" in roundtrip)
+
     def testKekulizationOfcn(self):
         """We were previously not reading 'cn' correctly, or at least how
         Daylight would"""
         mol = pybel.readstring("smi", "cn")
         self.assertEqual("C=N", mol.write("smi").rstrip())
+
+    def testInvalidCharsInSmiles(self):
+        """Check that inserting a comma in a SMILES string in various positions
+        does not result in a valid SMILES"""
+        data = "C, ,C [C,] [,C] [1,C] [C:,1] [C:1,] [CH,] [C+,] [C++,]"
+        data += " [C@,](Br)(Cl)(I)F C1,CC1 C%1,1CC%11 C%(1,1)CC%11"
+        data += " C=,C"
+        for smi in data.split(" "):
+            self.assertRaises(IOError, pybel.readstring, "smi", smi)
 
     def testOBMolAssignTotalChargeToAtoms(self):
         """Run the test cases described in the source code"""
@@ -120,7 +191,22 @@ class TestSuite(PythonBindings):
         self.assertRaises(IOError, pybel.readstring, "smi", "[11111C]")
         mol = pybel.readstring("smi", "[C]")
         mol.atoms[0].OBAtom.SetIsotope(65535)
-        self.assertEqual(mol.write("smi").rstrip(), "")
+        self.assertEqual(mol.write("smi").rstrip(), "[C]")
+
+    def testStereoRefsAfterAddingOBMols(self):
+        """The stereo ref for an implicit H ref was being set to 0"""
+        smis = ["C", "[C@@H](Br)(Cl)I"]
+        mols = [pybel.readstring("smi", smi) for smi in smis]
+        # FIXME - does not seem to be possible to work out whether
+        # tetrahedral or not from Python?
+        stereodata = mols[1].OBMol.GetData(ob.StereoData)
+        config = ob.toTetrahedralStereo(stereodata).GetConfig()
+        self.assertEqual(config.from_or_towards, 4294967294)
+        mols[0].OBMol += mols[1].OBMol
+        self.assertEqual(mols[0].write("smi").rstrip(), ".".join(smis))
+        stereodata = mols[0].OBMol.GetData(ob.StereoData)
+        config = ob.toTetrahedralStereo(stereodata).GetConfig()
+        self.assertEqual(config.from_or_towards, 4294967294)
 
     def testWhetherAllElementsAreSupported(self):
         """Check whether a new element has been correctly added"""
@@ -177,6 +263,24 @@ M  END
         molb = pybel.readstring("mol", molfile)
         self.assertEqual(2, molb.atoms[0].OBAtom.GetSpinMultiplicity())
         self.assertEqual(4, molb.atoms[0].OBAtom.GetImplicitHCount())
+
+class AcceptStereoAsGiven(PythonBindings):
+    """Tests to ensure that stereo is accepted as given in input from
+    SMILES and Mol files"""
+    def testSmiToSmi(self):
+        # Should preserve stereo
+        tet = "[C@@H](Br)(Br)Br"
+        out = pybel.readstring("smi", tet).write("smi")
+        self.assertTrue("@" in out)
+        cistrans = r"C/C=C(\C)/C"
+        out = pybel.readstring("smi", cistrans).write("smi")
+        self.assertTrue("/" in out)
+        # Should wipe stereo
+        out = pybel.readstring("smi", tet, opt={"S": True}).write("smi")
+        self.assertFalse("@" in out)
+        cistrans = r"C/C=C(\C)/C"
+        out = pybel.readstring("smi", cistrans, opt={"S": True}).write("smi")
+        self.assertFalse("/" in out)
 
 if __name__ == "__main__":
     unittest.main()
