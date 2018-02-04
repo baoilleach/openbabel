@@ -22,7 +22,6 @@ GNU General Public License for more details.
 #include <openbabel/mol.h>
 #include <openbabel/rotamer.h>
 #include <openbabel/phmodel.h>
-#include <openbabel/atomclass.h>
 #include <openbabel/bondtyper.h>
 #include <openbabel/builder.h>
 #include <openbabel/kekulize.h>
@@ -1179,6 +1178,8 @@ namespace OpenBabel
   //!  It is calculated from the atomic spin multiplicity information
   //!  assuming the high-spin case (i.e. it simply sums the number of unpaired
   //!  electrons assuming no further pairing of spins.
+  //!  if it fails (gives singlet for odd number of electronic systems),
+  //!  then assign wrt parity of the total electrons.
   unsigned int OBMol::GetTotalSpinMultiplicity()
   {
     if (HasFlag(OB_TSPIN_MOL))
@@ -1192,13 +1193,17 @@ namespace OpenBabel
         OBAtom *atom;
         vector<OBAtom*>::iterator i;
         unsigned int unpaired_electrons = 0;
-
+        int chg = GetTotalCharge();
         for (atom = BeginAtom(i);atom;atom = NextAtom(i))
           {
             if (atom->GetSpinMultiplicity() > 1)
               unpaired_electrons += (atom->GetSpinMultiplicity() - 1);
+           chg += atom->GetAtomicNum();
           }
-        return (unpaired_electrons + 1);
+        if (chg % 2 != unpaired_electrons %2)
+          return ((abs(chg) % 2) + 1);
+        else
+          return (unpaired_electrons + 1);
       }
   }
 
@@ -1407,21 +1412,6 @@ namespace OpenBabel
       }
     }
 
-    // Copy the atom maps
-    OBAtomClassData* src_am = (OBAtomClassData*) src.GetData("Atom Class");
-    if (src_am != (OBAtomClassData*)0) {
-      OBAtomClassData* dst_am = (OBAtomClassData*) GetData("Atom Class");
-      if (dst_am == (OBAtomClassData*)0) {
-        dst_am = new OBAtomClassData();
-        SetData(dst_am);
-      }
-      FOR_ATOMS_OF_MOL(atom, src) {
-        unsigned int idx = atom->GetIdx();
-        if (src_am->HasClass(idx))
-          dst_am->Add(idx + prevatms, src_am->GetClass(idx));
-      }
-    }
-    
     // TODO: This is actually a weird situation (e.g., adding a 2D mol to 3D one)
     // We should do something to update the src coordinates if they're not 3D
     if(src.GetDimension()<_dimension)
@@ -1828,7 +1818,7 @@ namespace OpenBabel
     return(true);
   }
 
-  bool OBMol::StripSalts(int threshold)
+  bool OBMol::StripSalts(unsigned int threshold)
   {
     vector<vector<int> > cfl;
     vector<vector<int> >::iterator i,max;
@@ -1884,10 +1874,10 @@ namespace OpenBabel
   }
 
   // Convenience function used by the DeleteHydrogens methods
-  static bool IsSuppressibleHydrogen(OBAtom *atom, OBAtomClassData *pac)
+  static bool IsSuppressibleHydrogen(OBAtom *atom)
   {
     if (atom->GetIsotope() == 0 && atom->GetHvyValence() == 1 && atom->GetFormalCharge() == 0
-        && (pac == NULL || !pac->HasClass(atom->GetIdx())))
+        && !atom->GetData("Atom Class"))
       return true;
     else
       return false;
@@ -1903,12 +1893,8 @@ namespace OpenBabel
                           "Ran OpenBabel::DeleteHydrogens -- polar",
                           obAuditMsg);
 
-    OBAtomClassData *pac = NULL;
-    if (this->HasData("Atom Class"))
-      pac = static_cast<OBAtomClassData*>(this->GetData("Atom Class"));
-
     for (atom = BeginAtom(i);atom;atom = NextAtom(i))
-      if (atom->IsPolarHydrogen() && IsSuppressibleHydrogen(atom, pac))
+      if (atom->IsPolarHydrogen() && IsSuppressibleHydrogen(atom))
         delatoms.push_back(atom);
 
     if (delatoms.empty())
@@ -1938,12 +1924,8 @@ namespace OpenBabel
                           obAuditMsg);
 
 
-    OBAtomClassData *pac = NULL;
-    if (this->HasData("Atom Class"))
-      pac = static_cast<OBAtomClassData*>(this->GetData("Atom Class"));
-
     for (atom = BeginAtom(i);atom;atom = NextAtom(i))
-      if (atom->IsNonPolarHydrogen() && IsSuppressibleHydrogen(atom, pac))
+      if (atom->IsNonPolarHydrogen() && IsSuppressibleHydrogen(atom))
         delatoms.push_back(atom);
 
     if (delatoms.empty())
@@ -1982,12 +1964,8 @@ namespace OpenBabel
     obErrorLog.ThrowError(__FUNCTION__,
                           "Ran OpenBabel::DeleteHydrogens", obAuditMsg);
 
-    OBAtomClassData *pac = NULL;
-    if (this->HasData("Atom Class"))
-      pac = static_cast<OBAtomClassData*>(this->GetData("Atom Class"));
-
     for (atom = BeginAtom(i);atom;atom = NextAtom(i))
-      if (atom->GetAtomicNum() == OBElements::Hydrogen && IsSuppressibleHydrogen(atom, pac))
+      if (atom->GetAtomicNum() == OBElements::Hydrogen && IsSuppressibleHydrogen(atom))
         delatoms.push_back(atom);
 
     UnsetHydrogensAdded();
@@ -2031,12 +2009,8 @@ namespace OpenBabel
     vector<OBBond*>::iterator k;
     vector<OBAtom*> delatoms;
 
-    OBAtomClassData *pac = NULL;
-    if (this->HasData("Atom Class"))
-      pac = static_cast<OBAtomClassData*>(this->GetData("Atom Class"));
-
     for (nbr = atom->BeginNbrAtom(k);nbr;nbr = atom->NextNbrAtom(k))
-      if (nbr->GetAtomicNum() == OBElements::Hydrogen && IsSuppressibleHydrogen(atom, pac))
+      if (nbr->GetAtomicNum() == OBElements::Hydrogen && IsSuppressibleHydrogen(atom))
         delatoms.push_back(nbr);
 
     if (delatoms.empty())
@@ -2051,26 +2025,6 @@ namespace OpenBabel
     UnsetSSSRPerceived();
     UnsetLSSRPerceived();
     return(true);
-  }
-
-  static void UpdateAtomMapsForAtomDeletion(OBMol* mol, unsigned int atomidx)
-  {
-    OBAtomClassData *pac = (OBAtomClassData*)mol->GetData("Atom Class");
-    if (pac != (OBAtomClassData*) 0) {
-      // Handle the deleted atom first
-      if (pac->HasClass(atomidx))
-        pac->Add(atomidx, 0);
-      // Now handle all of the atoms with indices >= deleted atom
-      FOR_ATOMS_OF_MOL(matom, mol) {
-        unsigned int midx = matom->GetIdx();
-        if (midx < atomidx) continue; // these ones are unaffected
-        if (pac->HasClass(midx+1)) {
-          unsigned int val = pac->GetClass(midx+1);
-          pac->Add(midx+1, 0); // wipe from old idx
-          pac->Add(midx, val); // assign map value to new idx
-        }
-      }
-    }
   }
 
   bool OBMol::DeleteHydrogen(OBAtom *atom)
@@ -2123,9 +2077,6 @@ namespace OpenBabel
     UnsetHydrogensAdded();
 
     DestroyAtom(atom);
-
-    // If the molecule has atom maps, these may need to be updated
-    UpdateAtomMapsForAtomDeletion(this, atomidx);
 
     UnsetSSSRPerceived();
     UnsetLSSRPerceived();
@@ -2448,7 +2399,7 @@ namespace OpenBabel
   }
 
   // Used by DeleteAtom below. Code based on StereoRefToImplicit
-  const void DeleteStereoOnAtom(OBMol& mol, OBStereo::Ref atomId)
+  static void DeleteStereoOnAtom(OBMol& mol, OBStereo::Ref atomId)
   {
     std::vector<OBGenericData*> vdata = mol.GetAllData(OBGenericDataType::StereoData);
     for (std::vector<OBGenericData*>::iterator data = vdata.begin(); data != vdata.end(); ++data) {
@@ -2512,9 +2463,6 @@ namespace OpenBabel
     // Delete any stereo objects involving this atom
     OBStereo::Ref id = atom->GetId();
     DeleteStereoOnAtom(*this, id);
-
-    // If the molecule has atom maps, these may need to be updated
-    UpdateAtomMapsForAtomDeletion(this, atom->GetIdx());
 
     if (destroyAtom)
       DestroyAtom(atom);
@@ -3732,9 +3680,9 @@ namespace OpenBabel
 
   }
 
-  void OBMol::SetConformer(int i)
+  void OBMol::SetConformer(unsigned int i)
   {
-    if (i >= 0 && i < _vconf.size())
+    if (i < _vconf.size())
       _c = _vconf[i];
   }
 
@@ -3838,7 +3786,7 @@ namespace OpenBabel
         OBBondIterator bi;
         for (bestbond = bond = patom->BeginBond(bi); bond; bond = patom->NextBond(bi))
         {
-          int bo = bond->GetBO();
+          unsigned int bo = bond->GetBO();
           if(bo>=2 && bo<=4)
           {
             bool het = IsNotCorH(bond->GetNbrAtom(patom));
@@ -3909,7 +3857,7 @@ namespace OpenBabel
         int bi = 0;
         if (bonds.size() > 1) {
           vector<int> scores(bonds.size());
-          for (int n = 0; n < bonds.size(); n++) {
+          for (unsigned int n = 0; n < bonds.size(); n++) {
             OBAtom *bgn = bonds[n]->GetBeginAtom();
             OBAtom *end = bonds[n]->GetEndAtom();
             int score = 0;
@@ -3931,7 +3879,7 @@ namespace OpenBabel
             }
             scores[n] = score;
           }
-          for (int n = 1; n < scores.size(); n++) {
+          for (unsigned int n = 1; n < scores.size(); n++) {
             if (scores[n] < scores[bi]) {
               bi = n;
             }

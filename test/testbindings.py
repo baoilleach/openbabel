@@ -226,6 +226,16 @@ class TestSuite(PythonBindings):
 
         self.assertTrue(N > 100)
 
+    def testIterators(self):
+        """Basic check that at least two iterators are working"""
+        mol = pybel.readstring("smi", "c1ccccc1C(=O)Cl")
+        atoms = list(ob.OBMolAtomIter(mol.OBMol))
+        self.assertEqual(len(atoms), 9)
+        elements = [atom.GetAtomicNum() for atom in atoms]
+        self.assertEqual(elements, [6,6,6,6,6,6,6,8,17])
+        bonds = list(ob.OBMolBondIter(mol.OBMol))
+        self.assertEqual(len(bonds), 9)
+
 class Radicals(PythonBindings):
     def testSmilesToMol(self):
         smis = ["C", "[CH3]", "[CH2]", "[CH2]C", "[C]"]
@@ -281,6 +291,74 @@ class AcceptStereoAsGiven(PythonBindings):
         cistrans = r"C/C=C(\C)/C"
         out = pybel.readstring("smi", cistrans, opt={"S": True}).write("smi")
         self.assertFalse("/" in out)
+
+class AtomClass(PythonBindings):
+    """Tests to ensure that refactoring the atom class handling retains
+    functionality"""
+
+    def testSMILES(self):
+        mol = pybel.readstring("smi", "C[CH3:6]")
+        atom = mol.OBMol.GetAtom(2)
+        data = atom.GetData("Atom Class")
+        self.assertTrue(data)
+        self.assertEqual(6, ob.toPairInteger(data).GetGenericValue())
+
+        atom.DeleteData("Atom Class")
+        ac = ob.obpairtemplateint()
+        ac.SetAttribute("Atom Class")
+        ac.SetValue(2)
+        mol.OBMol.GetAtom(1).CloneData(ac)
+        out = mol.write("smi", opt={"a":True, "n":True, "nonewline":True})
+        self.assertEqual("[CH3:2]C", out)
+
+    def testMOL(self):
+        """Roundtrip thru MOL file"""
+        smi = "C[CH3:6]"
+        mol = pybel.readstring("smi", smi)
+        molfile = mol.write("mol", opt={"a":True})
+        molb = pybel.readstring("mol", molfile)
+        out = mol.write("smi", opt={"a":True, "n":True, "nonewline":True})
+        self.assertEqual(smi, out)
+
+    def testRGroup(self):
+        """[*:1] is converted to R1 in MOL file handling"""
+        smi = "[*:6]C"
+        mol = pybel.readstring("smi", smi)
+        molfile = mol.write("mol")
+        self.assertTrue("M  RGP  1   1   6" in molfile)
+        molb = pybel.readstring("mol", molfile)
+        out = mol.write("smi", opt={"a":True, "n":True, "nonewline":True})
+        self.assertEqual(smi, out)
+
+    def testCML(self):
+        """OB stores atom classes using _NN at the end of atom ids"""
+        smis = ["[CH3:6]C", "[CH3:6][OH:6]",
+                "O"+"[CH2:2]"*27+"O"
+                ]
+        for smi in smis:
+            mol = pybel.readstring("smi", smi)
+            cml = mol.write("cml")
+            molb = pybel.readstring("mol", cml)
+            out = mol.write("smi", opt={"a":True, "n":True, "nonewline":True})
+            self.assertEqual(smi, out)
+
+    def testTinkerXYZ(self):
+        """Atom classes are written out as the atom types (though
+        not currently read)"""
+        smi = "[CH4:23]"
+        mol = pybel.readstring("smi", smi)
+        xyz = mol.write("txyz", opt={"c": True})
+        lines = xyz.split("\n")
+        broken = lines[1].split()
+        self.assertEqual("23", broken[-1].rstrip())
+
+    def testDeleteHydrogens(self):
+        """Don't suppress a hydrogen with an atom class"""
+        smi = "C([H])([H])([H])[H:1]"
+        mol = pybel.readstring("smi", smi)
+        mol.OBMol.DeleteHydrogens()
+        nsmi = mol.write("smi", opt={"a": True, "h": True})
+        self.assertEqual("C[H:1]", nsmi.rstrip())
 
 if __name__ == "__main__":
     unittest.main()
