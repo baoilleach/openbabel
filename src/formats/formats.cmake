@@ -168,8 +168,8 @@ if(CAIRO_FOUND)
   set(optional_formatgroups
     ${optional_formatgroups} formats_cairo
     )
-  include_directories(${CAIRO_INCLUDE_DIRS})
-  set(libs ${libs} ${CAIRO_LIBRARIES})
+  #include_directories(${CAIRO_INCLUDE_DIRS})
+  #set(libs ${libs} ${CAIRO_LIBRARIES})
 endif(CAIRO_FOUND)
 
 # Inchi settings for shared builds

@@ -99,6 +99,20 @@ foreach(format ${formats_xml})
                         SUFFIX ${MODULE_EXTENSION})
 endforeach(format)
 
+foreach(format ${formats_cairo})
+  add_library(${format} ${PLUGIN_TYPE} ${format}.cpp ${${format}_additional_sources})
+  target_link_libraries(${format} ${libs} ${CAIRO_LIBRARIES} openbabel)
+  target_include_directories(${format} ${CAIRO_INCLUDE_DIR})
+  install(TARGETS ${format}
+                  RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+                  LIBRARY DESTINATION ${OB_PLUGIN_INSTALL_DIR}
+                  ARCHIVE DESTINATION ${OB_PLUGIN_INSTALL_DIR})
+  set_target_properties(${format} PROPERTIES
+                        OUTPUT_NAME ${format}
+                        PREFIX ""
+                        SUFFIX ${MODULE_EXTENSION})
+endforeach(format)
+
 foreach(format ${formats_json})
   add_library(${format} ${PLUGIN_TYPE} json/${format}.cpp ${json_additional_sources}
               "${openbabel_BINARY_DIR}/include/openbabel/babelconfig.h")
