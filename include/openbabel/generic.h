@@ -1148,7 +1148,7 @@ namespace OpenBabel
 
     int NumPoints() 
     { 
-      return _points.size(); 
+      return (int)_points.size();
     }
     
     void AddPoint(double x,double y,double z, double V) 
@@ -1180,6 +1180,30 @@ namespace OpenBabel
     
     void Clear();
 
+  };
+  
+  class OBAPI OBPcharge: public OBGenericData
+  {
+  protected:
+    std::vector<double> _PartialCharge;
+  public:
+    OBPcharge(){};
+    ~OBPcharge(){};
+
+    int NumPartialCharges() 
+    { 
+      return _PartialCharge.size(); 
+    }
+    
+    void AddPartialCharge(std::vector<double> q)
+    {
+      _PartialCharge = q;
+    }
+
+    std::vector<double> GetPartialCharge()
+    {
+        return _PartialCharge;
+    }
   };
 
  //! A standard iterator over vectors of OBGenericData (e.g., inherited from OBBase)
