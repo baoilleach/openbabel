@@ -98,6 +98,8 @@ namespace OpenBabel
 #define OB_LSSR_MOL              (1<<20)
   //! SpinMultiplicities on atoms have been set in OBMol::AssignSpinMultiplicity()
 #define OB_ATOMSPIN_MOL          (1<<21)
+  //! Treat as reaction
+#define OB_REACTION_MOL          (1<<22)
   // flags 22-32 unspecified
 #define OB_CURRENT_CONFORMER	 -1
 
@@ -378,7 +380,11 @@ enum HydrogenType { AllHydrogen, PolarHydrogen, NonPolarHydrogen };
     //! Mark that ring types have been perceived (see OBRingTyper for details)
     void   SetRingTypesPerceived()   { SetFlag(OB_RINGTYPES_MOL);   }
     //! Mark that chains and residues have been perceived (see OBChainsParser)
-    void   SetChainsPerceived()      { SetFlag(OB_CHAINS_MOL);      }
+    void   SetChainsPerceived(bool is_perceived=true)
+    {
+      if (is_perceived)      SetFlag(OB_CHAINS_MOL);
+      else                 UnsetFlag(OB_CHAINS_MOL);
+    }
     //! Mark that chirality has been perceived
     void   SetChiralityPerceived()   { SetFlag(OB_CHIRALITY_MOL);   }
     //! Mark that partial charges have been assigned
@@ -391,9 +397,14 @@ enum HydrogenType { AllHydrogen, PolarHydrogen, NonPolarHydrogen };
     void   SetHydrogensAdded()       { SetFlag(OB_H_ADDED_MOL);     }
     void   SetCorrectedForPH()       { SetFlag(OB_PH_CORRECTED_MOL);}
     void   SetSpinMultiplicityAssigned(){ SetFlag(OB_ATOMSPIN_MOL);    }
+    void   SetIsReaction(bool val=true) {
+      if (val)  SetFlag(OB_REACTION_MOL);
+      else    UnsetFlag(OB_REACTION_MOL);
+    }
     void   SetFlags(int flags)       { _flags = flags;              }
 
     void   UnsetAromaticPerceived()  { _flags &= (~(OB_AROMATIC_MOL));   }
+    //! Mark that chains perception will need to be run again if required
     void   UnsetSSSRPerceived()  { _flags &= (~(OB_SSSR_MOL));   }
     //! Mark that Largest Set of Smallest Rings will need to be run again if required (see OBRing class)
     void   UnsetLSSRPerceived()  { _flags &= (~(OB_LSSR_MOL));   }
@@ -476,6 +487,11 @@ enum HydrogenType { AllHydrogen, PolarHydrogen, NonPolarHydrogen };
     std::vector<OBMol> Separate(int StartIndex=1);
     //! Iterative component of Separate to copy one fragment at a time
     bool GetNextFragment( OpenBabel::OBMolAtomDFSIter& iter, OBMol& newMol );
+    // docs in mol.cpp
+    bool CopySubstructure(OBMol& newmol, OBBitVec *includeatoms, OBBitVec *excludebonds = (OBBitVec*)0,
+      unsigned int correctvalence=1,
+      std::vector<unsigned int> *atomorder=(std::vector<unsigned int>*)0,
+      std::vector<unsigned int> *bondorder=(std::vector<unsigned int>*)0);
     //! Converts the charged form of coordinate bonds, e.g.[N+]([O-])=O to N(=O)=O
     bool ConvertDativeBonds();
     //! Converts 5-valent N and P only. Return true if conversion occurred.
@@ -590,6 +606,8 @@ enum HydrogenType { AllHydrogen, PolarHydrogen, NonPolarHydrogen };
     bool IsCorrectedForPH() { return(HasFlag(OB_PH_CORRECTED_MOL));     }
     //! Has total spin multiplicity been assigned?
     bool HasSpinMultiplicityAssigned() { return(HasFlag(OB_ATOMSPIN_MOL)); }
+    //! Does this OBMol represent a reaction?
+    bool IsReaction()                  { return HasFlag(OB_REACTION_MOL); }
     //! Is this molecule chiral?
     bool IsChiral();
     //! Are there any atoms in this molecule?
