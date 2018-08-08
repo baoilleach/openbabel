@@ -171,6 +171,14 @@ namespace OpenBabel {
         "     to clean up stereochemistry (e.g. by removing tetrahedral\n"
         "     stereochemistry where two of the substituents are identical)\n"
         "     then specifying this option will reperceive stereocenters.\n"
+        "  k  Treat failure to Kekulize an aromatic SMILES as an error\n"
+        "     By default, this is treated as a warning, and the resulting\n"
+        "     structure will be read as a hydrogen-deficient radical,\n"
+        "     which probably indicates an error by the writer of the SMILES\n"
+        "     string. In certain circumstances, it is useful to be able to\n"
+        "     detect such failures from, for example, Python, and setting this\n"
+        "     option will enable this. You can test with the SMILES string\n"
+        "     c1cccc1.\n"
         "\n\n"
         ;
     }
@@ -267,6 +275,7 @@ namespace OpenBabel {
     int _rxnrole = 1;
     const char *_ptr;
     bool _preserve_aromaticity;
+    bool _treat_kekulization_failure_as_error;
     vector<int>             _vprev;
     vector<RingClosureBond> _rclose;
     vector<ExternalBond>    _extbond;
@@ -293,7 +302,10 @@ namespace OpenBabel {
 
   public:
 
-    OBSmilesParser(bool preserve_aromaticity=false): _preserve_aromaticity(preserve_aromaticity) { }
+    OBSmilesParser(bool preserve_aromaticity=false, bool treat_kekulization_failure_as_error=false):
+      _preserve_aromaticity(preserve_aromaticity),
+      _treat_kekulization_failure_as_error(treat_kekulization_failure_as_error)
+      { }
     ~OBSmilesParser() { }
 
     bool SmiToMol(OBMol&,const string&);
@@ -351,7 +363,8 @@ namespace OpenBabel {
     }
 
     pmol->SetDimension(0);
-    OBSmilesParser sp(pConv->IsOption("a", OBConversion::INOPTIONS));
+    OBSmilesParser sp(pConv->IsOption("a", OBConversion::INOPTIONS),
+                      pConv->IsOption("k", OBConversion::INOPTIONS));
     if (!pConv->IsOption("S", OBConversion::INOPTIONS))
       pmol->SetChiralityPerceived();
 
@@ -580,7 +593,8 @@ namespace OpenBabel {
         errorMsg << " (title is " << title << ")";
       errorMsg << endl;
       obErrorLog.ThrowError(__FUNCTION__, errorMsg.str(), obWarning);
-      // return false; // Should we return false for a kekulization failure?
+      if (_treat_kekulization_failure_as_error)
+        return false; // This is useful if you want to capture failures in Python
     }
 
     // Add the data stored inside the _tetrahedralMap to the atoms now after end

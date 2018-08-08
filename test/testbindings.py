@@ -54,6 +54,17 @@ class PybelWrapper(PythonBindings):
 
 class TestSuite(PythonBindings):
 
+    def testKekulizationFailureIsError(self):
+        """Test that the 'k' option for SMILES reading changes
+        the handling of kekulization failure"""
+        smi = "c1cccc1"
+        # Check that no exception is raised
+        # - will return a radical, and write a warning message
+        mol = pybel.readstring("smi", smi)
+        self.assertEqual("[CH]1C=CC=C1", mol.write("can").rstrip())
+        # Check that an exception is raised
+        self.assertRaises(IOError, pybel.readstring, "smi", smi, opt={"k": True})
+
     def testInChIIsotopes(self):
         """Ensure that we correctly set and read isotopes in InChIs"""
         with open(os.path.join(here, "inchi", "inchi_isotopes.txt")) as inp:
