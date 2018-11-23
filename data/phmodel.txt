@@ -25,19 +25,20 @@ TRANSFORM [OD1h0+0]=[CD3+0][OD1h1+0:1] >> O=C[O-:1]			4.0 # pKa from acid (AH)
 TRANSFORM [OD1h0+0]=[Cv4+0][Cv4+0]=[Cv4+0][OD1h1+0:1] >> O=CC=C[O-:1]   4.0 # pKa from acid (AH)
 
 #charged amine
-TRANSFORM [N^3;!$(N~[!#6;!#1]):1] >> [N+:1]				10.0 # pKa from conjugated acid (BH+)
+TRANSFORM [NX3v3+0;!$(*~[!#6;!#1]):1] >> [N+:1]				10.0 # pKa from conjugated acid (BH+)
 
 #imidazole: note pKa=7.0
 #if you uncomment this, also uncomment the seedcharge statement below
-TRANSFORM [nD2:1]1c[nH]cc1 >> [n+:1]1c[nH]cc1				7.0
+TRANSFORM [nD2h0+0:1]1c[nD2H+0]cc1 >> [n+:1]1c[nH]cc1				7.0
 
-#imine
-TRANSFORM [ND3+0:1]=[#6] >> [ND3+:1]=[#6]				4.0 # pKa from conjugated acid (BH+)
+#imine (commented out as it's too general, matching a lot of non-imines)
+# TRANSFORM [ND2v3+0]=[#6] >> [ND3+:1]=[#6]				4.0 # pKa from conjugated acid (BH+)
 
-#tetrazole
+#tetrazole (handle two tautomers)
 TRANSFORM [nD2:1]([#1:2])1[nD2-0][nD2-0][nD2-0]c1 >> [n-:1]1nnnc1	4.89 #pKa from acid (AH)
 TRANSFORM [nD2-0]1[nD2:1]([#1:2])[nD2-0][nD2-0]c1 >> n1[n-:1]nnc1	4.89 #pKa from acid (AH)
-TRANSFORM [nD2-0:1]1[nD2-0][nD2-0][nD2-0]c1 >> [n-:1]1nnnc1		4.89 #pKa from acid (AH)
+TRANSFORM [nD2h1+0:1]1[nD2h0+0][nD2h0+0][nD2h0+0]c1 >> [n-:1]1nnnc1	4.89 #pKa from acid (AH)
+TRANSFORM [nD2h0+0]1[nD2h1+0][nD2h0+0][nD2h0+0]c1 >> n1[n-:1]nnc1	4.89 #pKa from acid (AH)
 
 #hydroxamic acid
 #TRANSFORM O=CN[OD1-0:1][#1:2] >> O=CN[O-:1]				8.0
@@ -55,7 +56,8 @@ TRANSFORM [SD4]([!D1])(=O)(=O)[O:1][#1:2] >> [SD4]([!D1])(=O)(=O)[O-:1]	-2.6
 #TRANSFORM [SD4]([!D1])(=O)(=O)[O:1][#1:2] >> [SD4]([!D1])(=O)(=O)[O-:1]
 
 #guanidine or amidine
-TRANSFORM [#6^2+0:1](=[N^2+0:2])(~[N^2:3])* >> [#6:1](=[N+1:2])(~[N:3])*		12.5
+TRANSFORM [ND1h1+0:1]=[#6D3+0]([NX3+0])[C,N] >>   [N+:1]=[#6]([N])*		12.5
+TRANSFORM [ND2h0+0]=[#6D3+0]([NX3h1+0:1])[C,N] >> [N]=[#6]([N+:1])*		12.5
 
 #phosphate ester
 TRANSFORM [PD4h0+0](=[OD1h0+0])([OD2h0+0])([OD2+0])[OD1h1+0:1] >> P(=O)(O)(O)[O-:1]	2.0
@@ -76,40 +78,28 @@ TRANSFORM [OD1h0+0]=[PD4h0+0]([!D1+0])([OD1h1+0:1])[OD1h1+0:2] >> O=P(*)([O-:1])
 #									pKa sidechain
 # The recursive SMARTS term matches either the C terminus or a continuing
 # amide chain.
-#
+
 # aspartic acid
 TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)CC(=O)[OD1h1+0:1] >> O=CC(N)CC(=O)[O-:1]  3.8
 
 # glutamic acid
-#TRANSFORM O=CC(N)CCC(=O)O[#1:1] >> O=CC(N)CCC(=O)O		        4.3
 TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)CCC(=O)[OD1h1+0:1] >> O=CC(N)CCC(=O)[O-:1]  5.0
 
 # arginine
-TRANSFORM O=C(O)C(N)CCCNC(N)=[N:1] >> O=C(O)C(N)CCCNC(N)=[N+:1] 	12.0
-TRANSFORM O=C(NCC=O)C(N)CCCNC(N)=[N:1] >> O=C(NCC=O)C(N)CCCNC(N)=[N+:1] 12.0
+TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)CCC[ND2h1+0][CD3+0]([ND1h2+0])=[ND1h1+0:1] >> O=CC(N)CCCNC(N)=[N+:1]  12.0
 
 # lysine
-TRANSFORM O=C(O)C(N)CCCC[N:1] >> O=C(O)C(N)CCCC[N+:1] 			10.5
-TRANSFORM O=C(NCC=O)C(N)CCCC[N:1] >> O=C(NCC=O)C(N)CCCC[N+:1] 	        10.5
+TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)[CD2h2][CD2h2][CD2h2][CD2h2][ND1h2+0:1] >> O=CC(N)CCCC[N+:1]  10.5
 
-# histidine
-TRANSFORM O=C(O)C(N)Cc1[nH0:1]c[nH]c1  >> O=C(O)C(N)Cc1[n+:1]c[nH]c1            6.08
-TRANSFORM O=C(O)C(N)Cc1[nH]c[nH0:1]c1  >> O=C(O)C(N)Cc1[nH]c[n+:1]c1            6.08
-TRANSFORM O=C(NCC=O)C(N)Cc1[nH0:1]c[nH]c1  >> O=C(NCC=O)C(N)Cc1[n+:1]c[nH]c1    6.08
+# histidine (two tautomers)
+TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)[CD2h2]c1[nh1][cD2h1][nh0:1][cD2h1]1 >> O=CC(N)Cc1nc[n+:1]c1  6.08
+TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)[CD2h2]c1[nh0:1][cD2h1][nh1][cD2h1]1 >> O=CC(N)Cc1[n+:1]cnc1  6.08
 
 # cysteine
 TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)C[SD1h1+0:1] >> O=CC(N)C[S-:1]    8.28
 
 # tyrosine
 TRANSFORM [OD1h0+0]=[$([CD3h0+0][OD1h1+0]),$(CNCC=O)]C(N)c1ccc([OD1h1+0:1])cc1 >> O=CC(N)c1ccc([O-:1])cc1   10.1
-
-# old:
-# histidine
-#TRANSFORM [nD2:1]1c[nD2]cc1 >> [n+:1]1c[nD2]cc1
-# uncomment for tryptophan
-# TRANSFORM [nD2:1]1cccc1 >> [n+:1]1cccc1
-#, histidine pKa=6.0
-
 
 #
 #	Seeding partial charges for gasteiger calculation
