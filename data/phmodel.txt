@@ -18,7 +18,6 @@
 ##############################################################################
 
 #carboxylic acid							# pKa
-#TRANSFORM O=CO[#1:1] >> O=CO						4.0 # pKa from acid (AH)
 TRANSFORM [OD1h0+0]=[CD3+0][OD1h1+0:1] >> O=C[O-:1]			4.0 # pKa from acid (AH)
 
 #uncomment for vinylogous carboxylic acids (e.g. ascorbic acid)
@@ -35,25 +34,19 @@ TRANSFORM [nD2h0+0:1]1c[nD2H+0]cc1 >> [n+:1]1c[nH]cc1				7.0
 # TRANSFORM [ND2v3+0]=[#6] >> [ND3+:1]=[#6]				4.0 # pKa from conjugated acid (BH+)
 
 #tetrazole (handle two tautomers)
-TRANSFORM [nD2:1]([#1:2])1[nD2-0][nD2-0][nD2-0]c1 >> [n-:1]1nnnc1	4.89 #pKa from acid (AH)
-TRANSFORM [nD2-0]1[nD2:1]([#1:2])[nD2-0][nD2-0]c1 >> n1[n-:1]nnc1	4.89 #pKa from acid (AH)
 TRANSFORM [nD2h1+0:1]1[nD2h0+0][nD2h0+0][nD2h0+0]c1 >> [n-:1]1nnnc1	4.89 #pKa from acid (AH)
 TRANSFORM [nD2h0+0]1[nD2h1+0][nD2h0+0][nD2h0+0]c1 >> n1[n-:1]nnc1	4.89 #pKa from acid (AH)
 
 #hydroxamic acid
-#TRANSFORM O=CN[OD1-0:1][#1:2] >> O=CN[O-:1]				8.0
 TRANSFORM [OD1h0+0]=[Cv4+0][Nv3+0][OD1h1+0:1] >> O=CN[O-:1]             8.0
 
 #sulfinic acid
 TRANSFORM [SD3v4h0+0](=O)[OD1h1+0:1] >> S(=O)[O-:1]			2.0
-TRANSFORM [SD3](=O)[O:1][#1:2] >> [SD3](=O)[O-:1]			2.0
 
 #sulfonic acid
 TRANSFORM [SD4h0+0]([!D1])(=[OD1h0+0])(=[OD1h0+0])[OD1h1+0:1] >> S(*)(=O)(=O)[O-:1]	-2.6
-TRANSFORM [SD4]([!D1])(=O)(=O)[O:1][#1:2] >> [SD4]([!D1])(=O)(=O)[O-:1]	-2.6
 #sulfuric acid (same as sulfonic acid...)
-#TRANSFORM [SD4]([!D1])(=O)(=O)[OD1:1] >> [SD4]([!D1])(=O)(=O)[O-:1]
-#TRANSFORM [SD4]([!D1])(=O)(=O)[O:1][#1:2] >> [SD4]([!D1])(=O)(=O)[O-:1]
+
 
 #guanidine or amidine
 TRANSFORM [ND1h1+0:1]=[#6D3+0]([NX3+0])[C,N] >>   [N+:1]=[#6]([N])*		12.5
@@ -61,15 +54,12 @@ TRANSFORM [ND2h0+0]=[#6D3+0]([NX3h1+0:1])[C,N] >> [N]=[#6]([N+:1])*		12.5
 
 #phosphate ester
 TRANSFORM [PD4h0+0](=[OD1h0+0])([OD2h0+0])([OD2+0])[OD1h1+0:1] >> P(=O)(O)(O)[O-:1]	2.0
-#TRANSFORM [PD4](=O)([OD2])([OD2])[OD1:1][#1:2] >> [PD4](=O)([OD2])([OD2])[O-:1]	2.0
 
 # phosphonate
 TRANSFORM [PD4h0+0](=[Oh0+0])([OD2h0+0])([!#8])[OD1h1+0:1] >> [PD4](=O)([OD2])([!#8])[O-:1]	2.2
 # http://research.chem.psu.edu/brpgroup/pKa_compilation.pdf
 
 #phosphoric acid
-#TRANSFORM O=P([!D1])([O:1][#1:2])[O:3][#1:4] >> O=P([*D2,*D3])([O:1])[O:3]	2.12
-TRANSFORM O=P([!D1])([O:1][#1:2])[OD1]       >> O=P([!D1])([O:1])O		2.12
 TRANSFORM [OD1h0+0]=[PD4h0+0]([!D1+0])([OD1h1+0:1])[OD1h1+0:2] >> O=P(*)([O-:1])[O-:2]	2.12
 #phosphate
 
